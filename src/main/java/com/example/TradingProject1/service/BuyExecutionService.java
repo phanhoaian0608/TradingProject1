@@ -8,6 +8,7 @@ import com.example.TradingProject1.enums.CryptoType;
 import com.example.TradingProject1.enums.TradingMethod;
 import com.example.TradingProject1.enums.TradingStatus;
 import com.example.TradingProject1.service.interfaces.TradingExecutionService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
+@Slf4j
 public class BuyExecutionService implements TradingExecutionService<TradingRequest> {
 
     private final TradingTransactionHistoryService tradingTransactionHistoryService;
@@ -34,6 +36,7 @@ public class BuyExecutionService implements TradingExecutionService<TradingReque
 
     @Override
     public ResponseEntity executeTrade(TradingRequest tradingRequest) {
+        log.info("Start buying process");
         UserWallet originalWalletState = null;
 
         try {
