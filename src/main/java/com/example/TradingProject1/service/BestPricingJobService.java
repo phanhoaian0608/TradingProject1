@@ -4,6 +4,7 @@ import com.example.TradingProject1.entity.TradingDataAggregation;
 import com.example.TradingProject1.enums.CryptoType;
 import com.example.TradingProject1.dto.*;
 import com.example.TradingProject1.repository.TradingRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -13,6 +14,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class BestPricingJobService {
     private final String BINANCE_URL = "https://api.binance.com/api/v3/ticker/bookTicker";
     private final String HOUBI_URL = "https://api.huobi.pro/market/tickers";
@@ -27,24 +29,28 @@ public class BestPricingJobService {
     }
 
     public void fetchAndSaveCryptoAggregation() {
-        List<BinanceTradingData> binanceTradingDataList = fetchBinanceData();
-        HoubiTradingDataList houbiTradingDataList = fetchHoubiData();
+        try {
+            List<BinanceTradingData> binanceTradingDataList = fetchBinanceData();
+            HoubiTradingDataList houbiTradingDataList = fetchHoubiData();
 
-        Map<String, BinanceTradingData> binanceTradingDataMap = binanceTradingDataList.parallelStream()
-                .filter(binanceTradingData -> CryptoType.BTCUSDT.toString().equalsIgnoreCase(binanceTradingData.getSymbol())
-                        || CryptoType.ETHUSDT.toString().equalsIgnoreCase(binanceTradingData.getSymbol()))
-                .collect(Collectors.toMap(BinanceTradingData::getSymbol, Function.identity()));
+            Map<String, BinanceTradingData> binanceTradingDataMap = binanceTradingDataList.parallelStream()
+                    .filter(binanceTradingData -> CryptoType.BTCUSDT.toString().equalsIgnoreCase(binanceTradingData.getSymbol())
+                            || CryptoType.ETHUSDT.toString().equalsIgnoreCase(binanceTradingData.getSymbol()))
+                    .collect(Collectors.toMap(BinanceTradingData::getSymbol, Function.identity()));
 
-        Map<String, HoubiTradingData> houbiTradingDataMap = houbiTradingDataList.getData().parallelStream()
-                .filter(houbiTradingData -> CryptoType.BTCUSDT.toString().equalsIgnoreCase(houbiTradingData.getSymbol())
-                        || CryptoType.ETHUSDT.toString().equalsIgnoreCase(houbiTradingData.getSymbol()))
-                .collect(Collectors.toMap(houbiTradingData -> houbiTradingData.getSymbol().toUpperCase(), Function.identity()));
+            Map<String, HoubiTradingData> houbiTradingDataMap = houbiTradingDataList.getData().parallelStream()
+                    .filter(houbiTradingData -> CryptoType.BTCUSDT.toString().equalsIgnoreCase(houbiTradingData.getSymbol())
+                            || CryptoType.ETHUSDT.toString().equalsIgnoreCase(houbiTradingData.getSymbol()))
+                    .collect(Collectors.toMap(houbiTradingData -> houbiTradingData.getSymbol().toUpperCase(), Function.identity()));
 
-        List<TradingDataAggregation> tradingDataAggregationList = new ArrayList<>();
-        tradingDataAggregationList.add(getBestPricingAggregation(CryptoType.BTCUSDT, binanceTradingDataMap, houbiTradingDataMap));
-        tradingDataAggregationList.add(getBestPricingAggregation(CryptoType.ETHUSDT, binanceTradingDataMap, houbiTradingDataMap));
+            List<TradingDataAggregation> tradingDataAggregationList = new ArrayList<>();
+            tradingDataAggregationList.add(getBestPricingAggregation(CryptoType.BTCUSDT, binanceTradingDataMap, houbiTradingDataMap));
+            tradingDataAggregationList.add(getBestPricingAggregation(CryptoType.ETHUSDT, binanceTradingDataMap, houbiTradingDataMap));
 
-        tradingRepository.saveAll(tradingDataAggregationList);
+            tradingRepository.saveAll(tradingDataAggregationList);
+        } catch (Exception e) {
+            log.error("Error during fetching data process");
+        }
     }
 
     private TradingDataAggregation getBestPricingAggregation(CryptoType cryptoType, Map<String, BinanceTradingData> binanceTradingDataMap, Map<String, HoubiTradingData> houbiTradingDataMap) {
