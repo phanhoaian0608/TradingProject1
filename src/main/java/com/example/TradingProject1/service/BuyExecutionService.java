@@ -41,15 +41,15 @@ public class BuyExecutionService implements TradingExecutionService<TradingReque
             UserWallet userWallet = userWalletService.getCurrentUserWallet();
             originalWalletState = keepCurrentStateOfWallet(userWallet);
 
-            if (tradingRequest.getBuyQuantity() == null) {
-                return ResponseEntity.status(400).body("Invalid request to buy");
-            }
-
             // Get best aggregated pricing
             TradingDataAggregation aggregatedData = getTradeDataService.getDataByType(tradingRequest.getType());
 
             if (aggregatedData == null) {
                 return ResponseEntity.status(404).body("No matching record found for type: " + tradingRequest.getType());
+            }
+
+            if (tradingRequest.getBuyQuantity() == null || tradingRequest.getBuyQuantity() > aggregatedData.getSellQuantity()) {
+                return ResponseEntity.status(400).body("Invalid request to buy");
             }
 
             // Save transaction with status INITIALIZED

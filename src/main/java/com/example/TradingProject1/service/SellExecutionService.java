@@ -43,17 +43,16 @@ public class SellExecutionService implements TradingExecutionService<TradingRequ
             UserWallet userWallet = userWalletService.getCurrentUserWallet();
             originalWalletState = keepCurrentStateOfWallet(userWallet);
 
-
-            boolean isValidSellTransaction = isValidRequestToSell(userWallet, tradingRequest);
-            if (!isValidSellTransaction) {
-                return ResponseEntity.status(400).body("Invalid request to sell");
-            }
-
             // Get best aggregated pricing
             TradingDataAggregation aggregatedData = getTradeDataService.getDataByType(tradingRequest.getType());
 
             if (aggregatedData == null) {
                 return ResponseEntity.status(404).body("No matching record found for type: " + tradingRequest.getType());
+            }
+
+            boolean isValidSellTransaction = isValidRequestToSell(userWallet, tradingRequest, aggregatedData);
+            if (!isValidSellTransaction) {
+                return ResponseEntity.status(400).body("Invalid request to sell");
             }
 
             // Save transaction with status INITIALIZED
@@ -129,11 +128,12 @@ public class SellExecutionService implements TradingExecutionService<TradingRequ
 
     }
 
-    private boolean isValidRequestToSell(UserWallet userWallet, TradingRequest tradingRequest) {
-        if (tradingRequest.getSellQuantity() == null) {
+    private boolean isValidRequestToSell(UserWallet userWallet, TradingRequest tradingRequest,
+                                         TradingDataAggregation aggregatedData) {
+        if (tradingRequest.getSellQuantity() == null || tradingRequest.getSellQuantity() > aggregatedData.getBuyQuantity()) {
             return false;
         } else if (CryptoType.ETHUSDT.name().equalsIgnoreCase(tradingRequest.getType())) {
-            return userWallet.getETHUSDT() >= tradingRequest.getSellQuantity();
+            return userWallet.getETHUSDT() >= tradingRequest.getSellQuantity() ;
         } else if (CryptoType.BTCUSDT.name().equalsIgnoreCase(tradingRequest.getType())) {
             return userWallet.getBTCUSDT() >= tradingRequest.getSellQuantity();
         }
