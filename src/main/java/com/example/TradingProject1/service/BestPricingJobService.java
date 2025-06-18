@@ -27,7 +27,6 @@ public class BestPricingJobService {
     }
 
     public void fetchAndSaveCryptoAggregation() {
-        System.out.println("fetch");
         List<BinanceTradingData> binanceTradingDataList = fetchBinanceData();
         HoubiTradingDataList houbiTradingDataList = fetchHoubiData();
 
